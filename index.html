@@ -122,6 +122,8 @@
   .ptable-wrap p{margin:0 0 10px;color:#5e6a82;font-size:.9rem;line-height:1.45}
   .ptable-img{display:block;width:100%;height:auto;border:1px solid #e6ebf4;border-radius:12px;background:#fff}
   .ptable-note{margin-top:10px;color:#68758f;font-size:.82rem}
+  #celebrationCanvas{position:fixed;inset:0;width:100vw;height:100vh;z-index:1000;pointer-events:none}
+  #celebrationCanvas[hidden]{display:none}
   @media(max-width:820px){.grid{grid-template-columns:1fr}.sidebar{position:static}.hero{align-items:flex-start;flex-direction:column}.directions-grid{grid-template-columns:1fr 1fr}.answer-zone{grid-template-columns:1fr}.primary{width:100%}.refcards{grid-template-columns:1fr}.builder-equation{flex-direction:column}.builder-op{min-height:20px}.factor-slot{width:100%}.factor-bank{grid-template-columns:1fr}.answer-zone.builder-check-only .primary{width:100%}}
   @media(max-width:520px){.directions-grid{grid-template-columns:1fr}}
 </style>
@@ -135,6 +137,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
+<canvas id="celebrationCanvas" aria-hidden="true" hidden></canvas>
 <div class="wrap">
   <div class="hero">
     <div>
@@ -698,7 +701,7 @@
     }
     const exact=slots.every((x,i)=>x.cardId===req[i].id && x.flipped===req[i].flipped);
     if(exact){
-      if(!q.scored){state.correct++;state.streak++;q.scored=true;}
+      if(!q.scored){state.correct++;state.streak++;q.scored=true;celebrate();}
       ui.feedback.className='feedback good';
       ui.feedback.innerHTML=`Correct setup! The units cancel from left to right and leave <b>${q.builder.targetHTML}</b>. If you carry out the math, the result is <b>${formatSigHTML(q.answer,q.sigFigs)} ${q.builder.targetHTML}</b>.`;
     }else{
@@ -970,6 +973,35 @@
     const place=10**(Math.floor(Math.log10(Math.abs(expected)))-q.sigFigs+1);
     return Math.abs(val-expected) <= Math.abs(place)*0.5000001;
   }
+// Each completed question gets one brief celebration; the next one uses a different effect.
+let lastCelebration='',celebrationFrame=0;
+const celebrationColors=['#ff5e78','#ffb938','#5bd3bd','#6680f4','#b882ed','#ff83c0'];
+function celebrate(){
+ if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches||document.visibilityState==='hidden')return;
+ const canvas=document.getElementById('celebrationCanvas'),ctx=canvas.getContext('2d');if(!ctx)return;
+ const effects=['confetti','fireworks','balloons'].filter(effect=>effect!==lastCelebration);
+ const effect=effects[Math.floor(Math.random()*effects.length)];lastCelebration=effect;
+ cancelAnimationFrame(celebrationFrame);
+ const w=window.innerWidth,h=window.innerHeight,dpr=Math.min(window.devicePixelRatio||1,2);
+ canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.hidden=false;
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ const random=(min,max)=>min+Math.random()*(max-min);
+ const duration=effect==='balloons'?4400:effect==='fireworks'?2800:3500;
+ const pieces=effect==='confetti'?Array.from({length:125},()=>({x:random(0,w),y:random(-h*.65,-10),speed:random(.13,.32),drift:random(-.09,.09),size:random(5,11),phase:random(0,7),color:celebrationColors[Math.floor(random(0,celebrationColors.length))]})):
+ effect==='balloons'?Array.from({length:21},(_,i)=>({x:(i+.5)*w/21+random(-w/42,w/42),y:h+random(25,h*.45),speed:random(.67,1.2),size:random(12,23),phase:random(0,7),color:celebrationColors[Math.floor(random(0,celebrationColors.length))]})):
+ Array.from({length:6},(_,i)=>({x:random(w*.12,w*.88),y:random(h*.16,h*.58),delay:i*330,color:celebrationColors[Math.floor(random(0,celebrationColors.length))],rays:Array.from({length:34},()=>({angle:random(0,Math.PI*2),speed:random(.055,.15),radius:random(1.4,3.3)}))}));
+ const start=performance.now();
+ function draw(now){
+  const ms=now-start;ctx.clearRect(0,0,w,h);
+  if(effect==='confetti')for(const p of pieces){const x=p.x+p.drift*ms+Math.sin(ms*.003+p.phase)*13,y=p.y+p.speed*ms+.000018*ms*ms;if(y>h+20)continue;ctx.save();ctx.translate(x,y);ctx.rotate(ms*.005+p.phase);ctx.fillStyle=p.color;ctx.fillRect(-p.size/2,-p.size/3,p.size,p.size*.7);ctx.restore();}
+  if(effect==='fireworks')for(const burst of pieces){const age=ms-burst.delay;if(age<0||age>1250)continue;ctx.save();ctx.globalAlpha=Math.max(0,1-age/1250);ctx.fillStyle=burst.color;ctx.shadowColor=burst.color;ctx.shadowBlur=9;for(const ray of burst.rays){const x=burst.x+Math.cos(ray.angle)*ray.speed*age,y=burst.y+Math.sin(ray.angle)*ray.speed*age+.00004*age*age;ctx.beginPath();ctx.arc(x,y,ray.radius,0,Math.PI*2);ctx.fill();}ctx.restore();}
+  if(effect==='balloons')for(const p of pieces){const x=p.x+Math.sin(ms*.002+p.phase)*14,y=p.y-p.speed*(h+420)*ms/duration;if(y< -60||y>h+70)continue;ctx.save();ctx.strokeStyle=p.color;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,y+p.size*1.2);ctx.bezierCurveTo(x+8,y+p.size*1.8,x-8,y+p.size*2.4,x+3,y+p.size*3);ctx.stroke();ctx.fillStyle=p.color;ctx.beginPath();ctx.ellipse(x,y,p.size*.78,p.size,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.moveTo(x-4,y+p.size*.91);ctx.lineTo(x+4,y+p.size*.91);ctx.lineTo(x,y+p.size*1.2);ctx.fill();ctx.restore();}
+  if(ms<duration&&document.visibilityState!=='hidden')celebrationFrame=requestAnimationFrame(draw);
+  else{ctx.clearRect(0,0,w,h);canvas.hidden=true;celebrationFrame=0;}
+ }
+ celebrationFrame=requestAnimationFrame(draw);
+}
+
   function checkAnswer(){
     const q=state.q;
     if(q.kind==='builder'){checkBuilder();return;}
@@ -985,7 +1017,7 @@
     }
     if(!q.attempted){state.attempted++; q.attempted=true;}
     if(ok){
-      if(!q.scored){state.correct++; state.streak++; q.scored=true;}
+      if(!q.scored){state.correct++; state.streak++; q.scored=true;celebrate();}
       ui.feedback.className='feedback good';
       ui.feedback.innerHTML=q.kind==='formula'
         ? `Correct — the empirical formula is <b>${fhtml(q.answer)}</b>.`
