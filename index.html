@@ -829,6 +829,13 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
       solution:solutionBlock('Percent by mass',tex,`The ${el} contribution is <b>${partText} g</b> per mole of compound; molar mass = <b>${M.text} g/mol</b>. Final answer: <b>${sf} significant figures</b>.`)});
   }
 
+
+  function molarMassPractice(){const cp=pick(COMPOUNDS),M=molarMassInfo(cp.comp);return qbase({topic:'Calculate Molar Mass',steps:1,unit:'g/mol',answer:M.value,sigFigs:3,text:`Calculate the <b>molar mass</b> of ${fhtml(cp.formula)} using the Yellow Sheet atomic masses. Report <b>3 significant figures</b>.`,path:['atom counts','multiply by atomic masses','add mass contributions'],hints:['Expand parentheses before counting atoms; a subscript outside parentheses multiplies every atom inside.','Multiply each element’s atomic mass by its atom count, add all contributions, and round the total at the end.'],solution:'<h3>Molar-mass breakdown</h3><table class="composition-table"><tr><th>Element</th><th>Atoms</th><th>Contribution (g/mol)</th></tr>'+Object.entries(cp.comp).map(([el,n])=>'<tr><td>'+el+'</td><td>'+n+'</td><td>'+n+' × '+MASS_TEXT[el]+' = '+(n*MASS[el]).toFixed(3)+'</td></tr>').join('')+'</table><p>Total = '+M.text+' g/mol; to 3 significant figures: <b>'+formatSigHTML(M.value,3)+' g/mol</b>.</p>'});}
+  function constituentMassPractice(){const cp=pick(COMPOUNDS.filter(x=>Object.keys(x.comp).length>1)),[el,count]=chooseElement(cp),M=molarMassInfo(cp.comp),g=makeMeasurement(5,95,3),fraction=count*MASS[el]/M.value,ans=g.value*fraction;return qbase({topic:'Mass of an Element in a Compound',steps:2,unit:'g '+el,answer:ans,sigFigs:3,text:`A pure sample of ${fhtml(cp.formula)} has mass <b>${g.html} g</b>. How many grams of <b>${el}</b> does it contain? Report 3 significant figures.`,path:['grams compound','moles compound','grams element'],hints:['Calculate the compound molar mass from its formula.','Find the element’s mass contribution per mole: its subscript × atomic molar mass.','Multiply sample mass by (element mass contribution ÷ compound molar mass). This is equivalent to grams → moles compound → moles element → grams element.'],solution:'<h3>Use the element mass fraction</h3><p>Molar mass = '+M.text+' g/mol. '+el+' contribution = '+count+' × '+MASS_TEXT[el]+' = '+(count*MASS[el]).toFixed(3)+' g/mol.</p><p>'+g.html+' g × '+(count*MASS[el]).toFixed(3)+'/'+M.text+' = <b>'+formatSigHTML(ans,3)+' g '+el+'</b>.</p>'});}
+  function molecularPractice(){const item=pick([{base:{C:1,H:2,O:1},emp:'CH2O',k:6,formula:'C6H12O6'},{base:{C:1,H:1},emp:'CH',k:6,formula:'C6H6'},{base:{N:1,O:2},emp:'NO2',k:2,formula:'N2O4'},{base:{C:1,H:2},emp:'CH2',k:4,formula:'C4H8'}]),M=mm(item.base),given=(M*item.k).toFixed(2);return qbase({topic:'Molecular Formula',steps:'composition',kind:'formula',unit:'formula',answer:item.formula,text:`A compound has empirical formula <b>${fhtml(item.emp)}</b> and molar mass <b>${given} g/mol</b>. Determine its <b>molecular formula</b>.`,path:['empirical formula mass','molecular mass ÷ empirical mass','scale every subscript'],hints:['Find the mass of one empirical-formula unit using the reference atomic masses.','Divide the measured molar mass by the empirical-formula mass and round to a justified whole number.','Multiply every subscript, including implied 1s, by that whole-number multiplier.'],solution:'<h3>Scale the empirical formula</h3><p>Empirical-formula mass = '+M.toFixed(3)+' g/mol. Multiplier = '+given+' ÷ '+M.toFixed(3)+' ≈ '+item.k+'.</p><p>Multiply every subscript by '+item.k+': <b>'+fhtml(item.formula)+'</b>.</p>'});}
+  function hydratePractice(){const item=pick([{f:'CuSO4',mm:159.61,x:5},{f:'MgSO4',mm:120.37,x:7},{f:'CaSO4',mm:136.14,x:2},{f:'BaCl2',mm:208.23,x:2}]),n=pick([.015,.02,.025,.03]),dry=Number((n*item.mm).toFixed(3)),water=Number((n*item.x*18.02).toFixed(3)),wet=Number((dry+water).toFixed(3));return qbase({topic:'Hydrate Composition',steps:'composition',unit:'water molecules per formula unit',answer:item.x,sigFigs:1,text:`Heating <b>${wet.toFixed(3)} g</b> of ${fhtml(item.f)}·xH₂O removes all water without decomposing the salt, leaving <b>${dry.toFixed(3)} g</b> of anhydrous ${fhtml(item.f)}. Determine the whole-number value of <b>x</b>. Use molar masses ${item.mm.toFixed(2)} g/mol for the anhydrous salt and 18.02 g/mol for water.`,path:['mass lost = water','moles water and dry salt','water : salt mole ratio'],hints:['Subtract dry-salt mass from hydrate mass to find water mass.','Convert water mass and dry-salt mass separately to moles using the given molar masses.','Divide moles of water by moles of salt and round to the nearest whole number. Enter the whole number only.'],solution:'<h3>Find the hydration ratio</h3><p>Water lost = '+wet.toFixed(3)+' − '+dry.toFixed(3)+' = '+water.toFixed(3)+' g.</p><p>n(H₂O) = '+water.toFixed(3)+'/18.02; n(salt) = '+dry.toFixed(3)+'/'+item.mm.toFixed(2)+'.</p><p>The ratio is approximately '+item.x+' mol water per mole salt, so <b>x = '+item.x+'</b>.</p>',data:'',});}
+  function combustionPractice(){const item=pick([{c:1,h:2,f:'CH2'},{c:1,h:4,f:'CH4'},{c:2,h:6,f:'CH3'},{c:2,h:2,f:'CH'}]),n=pick([.025,.04,.05,.075]),co2=Number((n*item.c*44.01).toFixed(4)),water=Number((n*item.h/2*18.02).toFixed(4));return qbase({topic:'Combustion → Empirical Formula',steps:'composition',kind:'formula',unit:'formula',answer:item.f,text:`Complete combustion of a compound containing <b>only carbon and hydrogen</b> produces <b>${co2.toFixed(4)} g CO₂</b> and <b>${water.toFixed(4)} g H₂O</b>. Determine the compound’s <b>empirical formula</b>.`,path:['CO₂ → mol C','H₂O → mol H (×2)','divide by smallest','simplest formula'],hints:['Every mole of CO₂ contains one mole of carbon atoms. Divide the CO₂ mass by 44.01 g/mol.','Every mole of H₂O contains two moles of hydrogen atoms. Divide water mass by 18.02 g/mol, then multiply by 2.','Divide the carbon and hydrogen mole amounts by the smaller value. Reduce to the simplest whole-number ratio. Oxygen in the combustion products comes from the oxygen supply; the original compound contains only C and H.'],solution:'<h3>Recover the C:H ratio</h3><p>n(C) = '+co2.toFixed(4)+'/44.01 = '+(co2/44.01).toFixed(5)+' mol.</p><p>n(H) = 2 × '+water.toFixed(4)+'/18.02 = '+(2*water/18.02).toFixed(5)+' mol.</p><p>Reduce the ratio to obtain <b>'+fhtml(item.f)+'</b>.</p>'});}
+
   function simpleEmpiricalFormula(){
     const item=pick([{formula:'CH2O',comp:{C:1,H:2,O:1}},{formula:'CH2',comp:{C:1,H:2}},{formula:'NO2',comp:{N:1,O:2}},{formula:'MgO',comp:{Mg:1,O:1}},{formula:'CO2',comp:{C:1,O:2}},{formula:'H2O',comp:{H:2,O:1}},{formula:'NH3',comp:{N:1,H:3}}]);
     const percent=Math.random()<.5,scale=pick([.1,.2,.25,.5]),total=mm(item.comp);
@@ -879,10 +886,10 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
 
   const options={
     '3A':[
-      ['mixed','Mixed Practice'],['builder','Conversion Factor Builder'],['mass','Mass ↔ Moles'],['particles','Moles ↔ Particles'],['ratio','Formula Mole Ratios'],['two','Two-Step Conversions'],['empirical','Empirical Formula']
+      ['mixed','Mixed Practice'],['builder','Conversion Factor Builder'],['mass','Mass ↔ Moles'],['particles','Moles ↔ Particles'],['ratio','Formula Mole Ratios'],['two','Two-Step Conversions'],['empirical','Empirical Formula'],['molarMass','Calculate Molar Mass'],['elementMass','Mass of an Element']
     ],
     '1A':[
-      ['mixed','Mixed Practice'],['mass','Mass ↔ Moles'],['particles','Moles ↔ Particles'],['ratio','Formula Mole Ratios'],['density','Density Chains'],['percent','Percent Composition'],['empirical','Empirical Formula']
+      ['mixed','Mixed Practice'],['mass','Mass ↔ Moles'],['particles','Moles ↔ Particles'],['ratio','Formula Mole Ratios'],['density','Density Chains'],['percent','Percent Composition'],['empirical','Empirical Formula'],['molarMass','Calculate Molar Mass'],['elementMass','Mass of an Element'],['molecular','Molecular Formula'],['hydrate','Hydrate Formula'],['combustion','Combustion Analysis']
     ]
   };
 
@@ -904,7 +911,7 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
 
   function renderModeButtons(){
     const root=document.getElementById('modeButtons');root.replaceChildren();
-    const notes={builder:'Place and flip conversion factors',mass:'Use molar mass to convert grams and moles',particles:'Use Avogadro’s number',ratio:'Use subscripts to connect mole amounts',two:'Connect two conversion factors',density:'Connect volume, mass, and moles',percent:'Find each element’s mass percentage',empirical:'Find the simplest whole-number ratio',mixed:'Mix the skills for your course'};
+    const notes={molarMass:'Count atoms and add their mass contributions',elementMass:'Find an element’s share of sample mass',molecular:'Scale an empirical formula using molar mass',hydrate:'Use mass lost to find waters of hydration',combustion:'Recover C:H ratios from CO₂ and H₂O',builder:'Place and flip conversion factors',mass:'Use molar mass to convert grams and moles',particles:'Use Avogadro’s number',ratio:'Use subscripts to connect mole amounts',two:'Connect two conversion factors',density:'Connect volume, mass, and moles',percent:'Find each element’s mass percentage',empirical:'Find the simplest whole-number ratio',mixed:'Mix the skills for your course'};
     for(const [value,title] of [...options[state.course].filter(x=>x[0]!=='mixed'),...options[state.course].filter(x=>x[0]==='mixed')]){
       if(value==='mixed'){const divider=document.createElement('div');divider.className='mode-divider';divider.textContent='Put your skills together';root.append(divider);}
       const b=document.createElement('button');b.type='button';b.className='mode-choice'+(value==='mixed'?' mode-mixed':'');b.dataset.mode=value;b.setAttribute('aria-pressed',String(ui.practiceType.value===value));
@@ -914,9 +921,9 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
   }
   function updateStepVisibility(){
     const type=ui.practiceType.value;
-    const fixedOne=['mass','particles','ratio'].includes(type);
+    const fixedOne=['mass','particles','ratio','molarMass'].includes(type);
     const fixedTwo=(state.course==='3A' && type==='two');
-    const comp=['percent','empirical'].includes(type);
+    const comp=['percent','empirical','elementMass','molecular','hydrate','combustion'].includes(type);
     if(comp || fixedOne || fixedTwo){ui.stepControl.style.display='none';return;}
     ui.stepControl.style.display='block';
     if(state.course==='1A' && type==='density'){
@@ -965,6 +972,9 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
 
   function usesParticles(q){return q.kind==='builder'?q.builder.required.some(f=>/^na/i.test(f.id)):/particles|molecules|formula units|atoms(?!.*mol)/i.test(q.path.filter(x=>!/^mol\b/.test(x)).join(' '));}
   function generateQuestion(){
+    const additions={molarMass:molarMassPractice,elementMass:constituentMassPractice,molecular:molecularPractice,hydrate:hydratePractice,combustion:combustionPractice};
+    if(additions[ui.practiceType.value])return additions[ui.practiceType.value]();
+    if(ui.practiceType.value==='mixed'&&ui.stepCount.value==='mixed'&&Math.random()<.25)return pick(state.course==='3A'?[molarMassPractice,constituentMassPractice]:Object.values(additions))();
     if(state.course!=='3A'||!['mixed','two','builder'].includes(ui.practiceType.value))return generateOriginalQuestion();
     if(ui.practiceType.value==='mixed'&&ui.stepCount.value==='mixed'&&Math.random()<.20)return simpleEmpiricalFormula();
     const particleTurn=Math.random()<.10;
@@ -977,7 +987,7 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
     ui.path.innerHTML=arrowPath(state.q.path);
     ui.topicTag.textContent=state.q.topic;
     ui.stepTag.textContent=state.q.steps==='composition'?'Composition challenge':`${state.q.steps} step${state.q.steps===1?'':'s'}`;
-    ui.sigTag.textContent=state.q.kind==='formula'?'Formula answer':state.q.kind==='builder'?'Build the setup':`${state.q.sigFigs} sig figs`;
+    ui.sigTag.textContent=state.q.topic==='Hydrate Composition'?'Whole-number answer':state.q.kind==='formula'?'Formula answer':state.q.kind==='builder'?'Build the setup':`${state.q.sigFigs} sig figs`;
     ui.answer.value='';
     const isBuilder=state.q.kind==='builder';
     ui.builderZone.classList.toggle('show',isBuilder);
@@ -1074,7 +1084,7 @@ function celebrate(){
   function showHint(){
     const q=state.q;
     ui.hintBox.className='hintbox show';
-    ui.hintBox.innerHTML='<b>🧭 Your solving plan</b><ol><li>Identify the given quantity and the unit requested.</li><li>Follow the route: '+q.path.join(' → ')+'.</li><li>'+ (q.hints.join('</li><li>')||'Use conversion factors so unwanted units cancel.')+'</li><li>Keep extra digits during the calculation; round only the final result'+(q.sigFigs?' to '+q.sigFigs+' significant figures':'')+'.</li></ol><p>'+(q.kind==='formula'?'Type the simplest chemical formula, such as CH2O. Omit subscripts of 1.':q.kind==='builder'?'Place and flip factors so units cancel left to right.':'The bold unit beside the answer box is supplied—type only the number.')+'</p>';
+    ui.hintBox.innerHTML='<b>🧭 Your solving plan</b><ol><li>Identify the given quantity and the unit requested.</li><li>Follow the route: '+q.path.join(' → ')+'.</li><li>'+ (q.hints.join('</li><li>')||'Use conversion factors so unwanted units cancel.')+'</li><li>Keep extra digits during the calculation; round only the final result'+(q.topic==='Hydrate Composition'?' to the nearest whole number':q.sigFigs?' to '+q.sigFigs+' significant figures':'')+'.</li></ol><p>'+(q.kind==='formula'?'Type the simplest chemical formula, such as CH2O. Omit subscripts of 1.':q.kind==='builder'?'Place and flip factors so units cancel left to right.':'The bold unit beside the answer box is supplied—type only the number.')+'</p>';
     ui.hintBtn.textContent='💡 Help shown';
   }
   function typesetMath(){
