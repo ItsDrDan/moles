@@ -126,6 +126,8 @@
   #celebrationCanvas[hidden]{display:none}
   @media(max-width:820px){.grid{grid-template-columns:1fr}.sidebar{position:static}.hero{align-items:flex-start;flex-direction:column}.directions-grid{grid-template-columns:1fr 1fr}.answer-zone{grid-template-columns:1fr}.primary{width:100%}.refcards{grid-template-columns:1fr}.builder-equation{flex-direction:column}.builder-op{min-height:20px}.factor-slot{width:100%}.factor-bank{grid-template-columns:1fr}.answer-zone.builder-check-only .primary{width:100%}}
   @media(max-width:520px){.directions-grid{grid-template-columns:1fr}}
+
+body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size:1rem;letter-spacing:0;text-transform:none;margin:0}.directions[open]>summary{margin-bottom:16px}.direction-step p{font-size:.94rem!important}.question-kicker{font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:#5364a0;margin-bottom:9px}.question .lead{font-size:clamp(1.15rem,2.3vw,1.4rem)}.input-wrap{max-width:430px;min-height:58px}#answer{width:190px;max-width:100%;flex:1}#unitBadge{font-size:1.12rem;font-weight:850;color:#263b67;background:#edf2ff;white-space:normal;line-height:1.25}.answer-zone{grid-template-columns:minmax(0,430px) auto;justify-content:start}.primary,.ghost,.next,.side-btn,.seg button{border:2px solid #344b76;box-shadow:0 3px 0 #344b76}.seg button.active{border-color:#243d91;background:#e6ecff}.primary:hover,.ghost:hover,.next:hover,.side-btn:hover{filter:brightness(.96)}button:focus-visible,summary:focus-visible{outline:3px solid #bd8420;outline-offset:4px}.next.complete{background:#207650;color:white;border-color:#134d34;font-size:1.1rem;padding:15px 24px;width:100%}.nextrow:has(.complete){display:block}.quest{padding:22px;margin-top:24px}.quest>summary{cursor:pointer;font-weight:800;font-size:1.15rem}.quest h2{font-size:1.3rem}.quest progress{width:100%;height:18px;accent-color:#387e65}.quest-badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.quest-badges span{border:1px solid #d9e1ed;background:#f3f5fa;padding:9px 13px;border-radius:12px}.quest-badges .earned{background:#fff1ca;border-color:#ba9644;color:#6d5014}@media(max-width:820px){.answer-zone{grid-template-columns:1fr}.input-wrap{width:100%}}
 </style>
 
 <script>
@@ -147,15 +149,15 @@
     </div>
   </div>
 
-  <div class="directions" aria-label="Directions for using the study game">
-    <div class="directions-title">📋 How to Use the Study Game</div>
+  <details class="directions" id="quickGuide" open><summary class="directions-title">🎮 Your quick-start mission · click to minimize</summary>
+    
     <div class="directions-grid">
       <div class="direction-step"><span class="direction-num">1</span><p><b>Choose your course.</b> CHEM 3A uses shorter 1–2 step conversions; CHEM 1A includes longer and more advanced problems.</p></div>
       <div class="direction-step"><span class="direction-num">2</span><p><b>Select a practice type</b> and, when available, the number of conversion steps you want to practice.</p></div>
       <div class="direction-step"><span class="direction-num">3</span><p><b>Solve the problem.</b> Enter the final answer with the correct significant figures. In the CHEM 3A Builder, drag factors into place and use <b>Flip</b> when a fraction needs to be inverted.</p></div>
-      <div class="direction-step"><span class="direction-num">4</span><p><b>Check your work.</b> Use Hint or Show Solution when needed, open the Yellow Sheet Reference for atomic masses, and select New Question to keep practicing.</p></div>
+      <div class="direction-step"><span class="direction-num">4</span><p><b>Check your work.</b> Use Help for a plan or Show Solution for the worked answer, open the Yellow Sheet Reference for atomic masses, and select New Question to keep practicing.</p></div>
     </div>
-  </div>
+  </details>
 
   <div class="grid">
     <aside class="panel sidebar">
@@ -195,7 +197,7 @@
         <span class="pill" id="modePill">CHEM 3A</span>
       </div>
 
-      <section class="question">
+      <div class="question-kicker">🎯 Your question</div><section class="question">
         <p class="lead" id="questionText"></p>
         <div class="path" id="path"></div>
       </section>
@@ -228,6 +230,7 @@
       <div class="nextrow"><button class="next" id="nextBtn">New Question →</button></div>
     </main>
   </div>
+  <details class="panel quest" id="moleQuest" open><summary>🏅 Your mole journey · XP & achievements</summary><h2 id="questHeading"></h2><p id="questText"></p><progress id="questMeter" max="100" value="0" aria-label="XP toward next level"></progress><div id="questBadges" class="quest-badges"></div><p class="tiny">20 XP per independent completion · 20% chance of double XP. Help is free. Revealed answers earn no XP. CHEM 3A and CHEM 1A progress are saved separately.</p></details>
   <div class="footer">Problem styles are inspired by common mole-concept, percent-composition, and empirical-formula exercises from introductory chemistry.</div>
 </div>
 
@@ -701,7 +704,7 @@
     }
     const exact=slots.every((x,i)=>x.cardId===req[i].id && x.flipped===req[i].flipped);
     if(exact){
-      if(!q.scored){state.correct++;state.streak++;q.scored=true;celebrate();}
+      if(!q.scored){state.correct++;state.streak++;q.scored=true;awardMoleXP();celebrate();}
       ui.feedback.className='feedback good';
       ui.feedback.innerHTML=`Correct setup! The units cancel from left to right and leave <b>${q.builder.targetHTML}</b>. If you carry out the math, the result is <b>${formatSigHTML(q.answer,q.sigFigs)} ${q.builder.targetHTML}</b>.`;
     }else{
@@ -870,11 +873,11 @@
   };
 
   function setCourse(course){
-    state.course=course;
+    state.course=course;state.correct=0;state.attempted=0;state.streak=0;updateStats();
     [...ui.courseSeg.querySelectorAll('button')].forEach(b=>b.classList.toggle('active',b.dataset.course===course));
     ui.modePill.textContent=`CHEM ${course}`;
-    ui.courseNote.innerHTML=course==='3A'
-      ? '<b>CHEM 3A:</b> 1–2 step problems using molar mass, Avogadro’s number, and mole ratios from chemical formulas.'
+    renderMoleQuest();ui.courseNote.innerHTML=course==='3A'
+      ? '<b>CHEM 3A:</b> Focus on mass ↔ moles and formula mole ratios. Mixed practice and Builder use only about 10% particle-counting questions; choose Moles ↔ Particles for extra practice.'
       : '<b>CHEM 1A:</b> 1–5 step conversion chains, with density plus percent-composition and empirical-formula challenges.';
     ui.practiceType.innerHTML=options[course].map(([v,t])=>`<option value="${v}">${t}</option>`).join('');
     ui.stepCount.innerHTML=course==='3A'
@@ -900,7 +903,7 @@
     }
   }
 
-  function generateQuestion(){
+  function generateOriginalQuestion(){
     const type=ui.practiceType.value, stepVal=ui.stepCount.value;
     if(state.course==='3A'){
       if(type==='builder'){
@@ -934,8 +937,15 @@
     return conversionBySteps(n);
   }
 
+  function usesParticles(q){return q.kind==='builder'?q.builder.required.some(f=>/^na/i.test(f.id)):/particles|molecules|formula units|atoms(?!.*mol)/i.test(q.path.filter(x=>!/^mol\b/.test(x)).join(' '));}
+  function generateQuestion(){
+    if(state.course!=='3A'||!['mixed','two','builder'].includes(ui.practiceType.value))return generateOriginalQuestion();
+    const particleTurn=Math.random()<.10;
+    for(let i=0;i<160;i++){const q=generateOriginalQuestion();if(usesParticles(q)===particleTurn)return q;}
+    return oneStepMassMoles();
+  }
   function newQuestion(){
-    state.q=generateQuestion(); state.hintIndex=0;
+    state.q=generateQuestion(); state.hintIndex=0; ui.nextBtn.classList.remove("complete");ui.nextBtn.textContent="New Question →";
     ui.questionText.innerHTML=state.q.text;
     ui.path.innerHTML=arrowPath(state.q.path);
     ui.topicTag.textContent=state.q.topic;
@@ -961,7 +971,7 @@
     ui.feedback.className='feedback'; ui.feedback.innerHTML='';
     ui.hintBox.className='hintbox'; ui.hintBox.innerHTML='';
     ui.solution.className='solution'; ui.solution.innerHTML='';
-    ui.hintBtn.textContent='💡 Hint'; ui.solutionBtn.textContent='🧭 Show Solution';
+    ui.hintBtn.textContent='💡 Help: How to solve'; ui.solutionBtn.textContent='🧭 Show Solution';
     if(!isBuilder) setTimeout(()=>ui.answer.focus(),50);
   }
 
@@ -1017,7 +1027,7 @@ function celebrate(){
     }
     if(!q.attempted){state.attempted++; q.attempted=true;}
     if(ok){
-      if(!q.scored){state.correct++; state.streak++; q.scored=true;celebrate();}
+      if(!q.scored){state.correct++; state.streak++; q.scored=true;awardMoleXP();celebrate();}
       ui.feedback.className='feedback good';
       ui.feedback.innerHTML=q.kind==='formula'
         ? `Correct — the empirical formula is <b>${fhtml(q.answer)}</b>.`
@@ -1025,7 +1035,7 @@ function celebrate(){
     }else if(q.kind!=='formula' && valueOk && !sfOk){
       state.streak=0;
       ui.feedback.className='feedback info';
-      ui.feedback.innerHTML=`Your numerical value is correct, but the answer needs <b>${q.sigFigs} significant figures</b>. Enter it as <b>${formatSigHTML(q.answer,q.sigFigs)} ${q.unit}</b>. Scientific notation is recommended when trailing zeros would be ambiguous.`;
+      ui.feedback.innerHTML=`Your numerical value is correct. Round to <b>${q.sigFigs} significant figures</b>, keeping trailing zeros when needed. Try scientific notation to make your precision clear.`;
     }else{
       state.streak=0;
       ui.feedback.className='feedback bad';
@@ -1035,13 +1045,10 @@ function celebrate(){
   }
 
   function showHint(){
-    const hints=state.q.hints;
-    if(!hints.length) return;
-    const idx=Math.min(state.hintIndex,hints.length-1);
+    const q=state.q;
     ui.hintBox.className='hintbox show';
-    ui.hintBox.innerHTML=`<b>Hint ${idx+1} of ${hints.length}:</b> ${hints[idx]}`;
-    if(state.hintIndex<hints.length-1) state.hintIndex++;
-    ui.hintBtn.textContent=state.hintIndex<hints.length?'💡 Next Hint':'💡 Hint Shown';
+    ui.hintBox.innerHTML='<b>🧭 Your solving plan</b><ol><li>Identify the given quantity and the unit requested.</li><li>Follow the route: '+q.path.join(' → ')+'.</li><li>'+ (q.hints.join('</li><li>')||'Use conversion factors so unwanted units cancel.')+'</li><li>Keep extra digits during the calculation; round only the final result'+(q.sigFigs?' to '+q.sigFigs+' significant figures':'')+'.</li></ol><p>The bold unit beside the answer box is supplied—type only the number. For the Builder, place and flip factors so units cancel left to right.</p>';
+    ui.hintBtn.textContent='💡 Help shown';
   }
   function typesetMath(){
     if(window.MathJax && typeof window.MathJax.typesetPromise==='function'){
@@ -1051,7 +1058,7 @@ function celebrate(){
   function showSolution(){
     const opening=!ui.solution.classList.contains('show');
     ui.solution.classList.toggle('show');
-    if(opening){ui.solution.innerHTML=state.q.solution; requestAnimationFrame(typesetMath);}
+    if(opening){state.q.assisted=true;ui.solution.innerHTML=state.q.solution; requestAnimationFrame(typesetMath);}
     ui.solutionBtn.textContent=ui.solution.classList.contains('show')?'Hide Solution':'🧭 Show Solution';
   }
   function updateStats(){ui.correctStat.textContent=state.correct;ui.attemptStat.textContent=state.attempted;ui.streakStat.textContent=state.streak;}
@@ -1102,6 +1109,11 @@ function celebrate(){
   ui.closeRef.addEventListener('click',()=>ui.referenceDialog.close());
   ui.referenceDialog.addEventListener('click',e=>{if(e.target===ui.referenceDialog)ui.referenceDialog.close();});
 
+  let moleProgress;try{moleProgress=JSON.parse(localStorage.getItem('drdan-mole-progress-v1')||'{}');}catch{moleProgress={};}if(!moleProgress||typeof moleProgress!=='object')moleProgress={};
+  function track(){const c=state.course;return moleProgress[c]||(moleProgress[c]={xp:0,wins:0,best:0});}
+  function renderMoleQuest(){const p=track();document.getElementById('questHeading').textContent='CHEM '+state.course+' · Level '+(1+Math.floor(p.xp/100))+' · Mole Navigator';document.getElementById('questText').textContent=p.xp+' XP · '+(100-p.xp%100)+' XP to next level';document.getElementById('questMeter').value=p.xp%100;document.getElementById('questBadges').innerHTML=[['🌱 First conversion',p.wins>=1],['⚖️ Mole explorer',p.wins>=10],['🔥 Five in a row',p.best>=5],['🏆 Mole champion',p.wins>=25]].map(([t,yes])=>'<span class="'+(yes?'earned':'')+'">'+(yes?'✓ ':'🔒 ')+t+'</span>').join('');}
+  function awardMoleXP(){const q=state.q;ui.nextBtn.classList.add('complete');ui.nextBtn.textContent='✓ Complete! Next Question →';if(q.assisted||q.xpAwarded)return;q.xpAwarded=true;const p=track(),bonus=Math.random()<.2,gain=bonus?40:20;p.xp+=gain;p.wins++;p.best=Math.max(p.best,state.streak);renderMoleQuest();try{localStorage.setItem('drdan-mole-progress-v1',JSON.stringify(moleProgress));}catch{}if(bonus){ui.modePill.textContent='🎉 Double XP! +40 · CHEM '+state.course;}}
+  for(const id of ['quickGuide','moleQuest']){const el=document.getElementById(id);try{el.open=localStorage.getItem('mole-ui-'+id)!=='closed';}catch{}el.addEventListener('toggle',()=>{try{localStorage.setItem('mole-ui-'+id,el.open?'open':'closed');}catch{}});}
   setCourse('3A');
 })();
 </script>
