@@ -133,6 +133,8 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
 .grid{grid-template-columns:1fr}.sidebar{position:static;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 22px}.sidebar>.section-title,.sidebar>.seg,.sidebar>#courseNote,.sidebar>label[for="practiceType"],.sidebar>#modeButtons{grid-column:1/-1}.sidebar>.seg{max-width:540px;width:100%}.mode-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:4px 0 20px}.mode-choice{min-width:0;min-height:96px;text-align:left;padding:16px;border:2px solid #65759b;border-radius:15px;background:#f0f3ff;color:#293957;box-shadow:0 3px 0 #65759b;line-height:1.35}.mode-choice:nth-child(3n+2){background:#edf8f1}.mode-choice:nth-child(3n+3){background:#fff5df}.mode-choice strong{display:block;font-size:1.02rem}.mode-choice small{display:block;font-size:.83rem;font-weight:500;margin-top:7px;color:#52637b}.mode-choice[aria-pressed=true]{background:#e1e9ff;border-color:#2d4695;box-shadow:0 3px 0 #2d4695,inset 0 0 0 1px #2d4695}.mode-choice[aria-pressed=true] strong::before{content:'✓ ';color:#27458f}.mode-choice:hover{filter:brightness(.97)}.mode-divider{grid-column:1/-1;border-top:3px solid #b9c6df;padding-top:16px;margin-top:8px;font-weight:800;font-size:.8rem;letter-spacing:.07em;text-transform:uppercase;color:#5b6c8c}.mode-mixed{grid-column:1/-1;background:#eee9ff!important;min-height:76px}.sidebar>.tiny{grid-column:1/-1}.sidebar>.side-btn{align-self:center}.sidebar .stats{align-self:end}#practiceType[hidden]{display:none!important}@media(max-width:650px){.mode-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}.sidebar{display:block}.mode-choice{padding:13px;min-height:104px}.mode-mixed{min-height:76px}}@media(max-width:380px){.mode-buttons{grid-template-columns:1fr}}
 
 .composition-table{border-collapse:collapse;margin:16px 0;width:min(100%,430px);font-size:1rem}.composition-table th,.composition-table td{border:1px solid #cbd5e5;padding:10px 15px;text-align:left}.composition-table th{background:#eaf0ff}.composition-table td{background:white;font-variant-numeric:tabular-nums}
+
+.mode-buttons{display:block}.main-mode-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}.main-mode-row .mode-choice{background:#eaf0ff;min-height:96px}.main-mode-row .mode-choice+button{background:#e9f6ef}.focused-modes{margin-top:22px;border-top:3px solid #c7d2e6;padding-top:17px}.focused-modes summary{cursor:pointer;font-weight:750;color:#42597d;min-height:40px}.focused-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}.focused-grid .mode-choice{min-height:65px;padding:12px}.focused-grid small:empty{display:none}.quiz-results{margin:20px 0;padding:22px;border:2px solid #a9c4b9;border-radius:17px;background:#f6fbf8}.study-result{border-top:1px solid #d5e3dc;padding:16px 0}.study-result>span{display:block;color:#52667e;font-size:.9rem}.study-result p{font-size:.9rem}.quiz-results h2{margin-top:0}[hidden]{display:none!important}@media(max-width:650px){.focused-grid{grid-template-columns:1fr 1fr}.main-mode-row{gap:10px}.main-mode-row .mode-choice{padding:12px}.main-mode-row strong{font-size:.95rem}}@media(max-width:380px){.focused-grid{grid-template-columns:1fr}}
 </style>
 
 <script>
@@ -207,6 +209,7 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
         <div class="path" id="path"></div>
       </section>
 
+      <section id="quizResults" class="quiz-results" hidden aria-live="polite"></section>
       <div id="builderZone" class="builder-zone">
         <div class="builder-instruction"><b>Build the conversion:</b> Drag a conversion factor into each slot, or click a card to place it in the first open slot. Use <b>Flip</b> to turn a conversion factor upside down so the units cancel correctly.</div>
         <div id="builderEquation" class="builder-equation"></div>
@@ -894,7 +897,7 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
   };
 
   function setCourse(course){
-    state.course=course;state.correct=0;state.attempted=0;state.streak=0;updateStats();
+    quiz=null;document.getElementById('quizResults').hidden=true;state.course=course;state.correct=0;state.attempted=0;state.streak=0;updateStats();
     [...ui.courseSeg.querySelectorAll('button')].forEach(b=>b.classList.toggle('active',b.dataset.course===course));
     ui.modePill.textContent=`CHEM ${course}`;
     renderMoleQuest();ui.courseNote.innerHTML=course==='3A'
@@ -911,16 +914,15 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
 
   function renderModeButtons(){
     const root=document.getElementById('modeButtons');root.replaceChildren();
-    const notes={molarMass:'Count atoms and add their mass contributions',elementMass:'Find an element’s share of sample mass',molecular:'Scale an empirical formula using molar mass',hydrate:'Use mass lost to find waters of hydration',combustion:'Recover C:H ratios from CO₂ and H₂O',builder:'Place and flip conversion factors',mass:'Use molar mass to convert grams and moles',particles:'Use Avogadro’s number',ratio:'Use subscripts to connect mole amounts',two:'Connect two conversion factors',density:'Connect volume, mass, and moles',percent:'Find each element’s mass percentage',empirical:'Find the simplest whole-number ratio',mixed:'Mix the skills for your course'};
-    for(const [value,title] of [...options[state.course].filter(x=>x[0]!=='mixed'),...options[state.course].filter(x=>x[0]==='mixed')]){
-      if(value==='mixed'){const divider=document.createElement('div');divider.className='mode-divider';divider.textContent='Put your skills together';root.append(divider);}
-      const b=document.createElement('button');b.type='button';b.className='mode-choice'+(value==='mixed'?' mode-mixed':'');b.dataset.mode=value;b.setAttribute('aria-pressed',String(ui.practiceType.value===value));
-      const heading=document.createElement('strong');heading.textContent=(value==='mixed'?'🎲 ':value==='builder'?'🧩 ':'')+title;const note=document.createElement('small');note.textContent=notes[value]||'';b.append(heading,note);
-      b.addEventListener('click',()=>{if(ui.practiceType.value===value)return;ui.practiceType.value=value;root.querySelectorAll('[data-mode]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));updateStepVisibility();newQuestion();});root.append(b);
-    }
+    const main=document.createElement('div');main.className='main-mode-row';
+    const make=(value,title,note)=>{const b=document.createElement('button');b.type='button';b.className='mode-choice';b.setAttribute('aria-pressed',String(value==='quiz'?!!quiz:!quiz&&ui.practiceType.value===value));const h=document.createElement('strong');h.textContent=title;const d=document.createElement('small');d.textContent=note;b.append(h,d);b.onclick=()=>{if(value==='quiz'){startSkillCheck();return;}quiz=null;document.getElementById('quizResults').hidden=true;ui.practiceType.value=value;renderModeButtons();updateStepVisibility();newQuestion();};return b;};
+    main.append(make('mixed','🎲 Mixed Practice','Build confidence with a variety of problems'),make('quiz','🧭 Skill Check Prep','10 questions · get your personal study plan'));root.append(main);
+    const details=document.createElement('details');details.className='focused-modes';details.open=!quiz&&ui.practiceType.value!=='mixed';const summary=document.createElement('summary');summary.textContent='Practice one skill · choose a topic';details.append(summary);const list=document.createElement('div');list.className='focused-grid';
+    for(const [value,title] of options[state.course].filter(x=>x[0]!=='mixed'))list.append(make(value,title,''));details.append(list);root.append(details);
   }
   function updateStepVisibility(){
     const type=ui.practiceType.value;
+    if(quiz){ui.stepControl.style.display='none';return;}
     const fixedOne=['mass','particles','ratio','molarMass'].includes(type);
     const fixedTwo=(state.course==='3A' && type==='two');
     const comp=['percent','empirical','elementMass','molecular','hydrate','combustion'].includes(type);
@@ -982,10 +984,13 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
     return oneStepMassMoles();
   }
   function newQuestion(){
-    state.q=generateQuestion(); state.hintIndex=0; ui.nextBtn.classList.remove("complete");ui.nextBtn.textContent="New Question →";
+    ui.answerZone.hidden=false;ui.nextBtn.hidden=false;document.querySelector('.actions').hidden=false;
+    if(quiz&&quiz.current){if(!quiz.current.done){quiz.current.skipped=true;quiz.current.done=true;}quiz.position++;if(quiz.position===quiz.items.length){showSkillReport();return;}}
+    if(quiz){quiz.current=quiz.items[quiz.position];}
+    state.q=quiz?quiz.current.q:generateQuestion(); state.hintIndex=0; ui.nextBtn.classList.remove("complete");ui.nextBtn.textContent="New Question →";
     ui.questionText.innerHTML=state.q.text;
     ui.path.innerHTML=arrowPath(state.q.path);
-    ui.topicTag.textContent=state.q.topic;
+    ui.topicTag.textContent=quiz?'Skill Check Prep · '+(quiz.position+1)+'/10 · '+state.q.topic:state.q.topic;
     ui.stepTag.textContent=state.q.steps==='composition'?'Composition challenge':`${state.q.steps} step${state.q.steps===1?'':'s'}`;
     ui.sigTag.textContent=state.q.topic==='Hydrate Composition'?'Whole-number answer':state.q.kind==='formula'?'Formula answer':state.q.kind==='builder'?'Build the setup':`${state.q.sigFigs} sig figs`;
     ui.answer.value='';
@@ -1008,6 +1013,7 @@ body{font-size:17px;line-height:1.6}.directions>summary{cursor:pointer;font-size
     ui.feedback.className='feedback'; ui.feedback.innerHTML='';
     ui.hintBox.className='hintbox'; ui.hintBox.innerHTML='';
     ui.solution.className='solution'; ui.solution.innerHTML='';
+    if(quiz){ui.nextBtn.textContent='Skip question →';ui.modePill.textContent='CHEM '+state.course+' · Skill Check Prep';}
     ui.hintBtn.textContent='💡 Help: How to solve'; ui.solutionBtn.textContent='🧭 Show Solution';
     if(!isBuilder) setTimeout(()=>ui.answer.focus(),50);
   }
@@ -1051,6 +1057,7 @@ function celebrate(){
 
   function checkAnswer(){
     const q=state.q;
+    if(quiz){checkSkillAnswer();return;}
     if(q.kind==='builder'){checkBuilder();return;}
     let ok=false, valueOk=false, sfOk=true;
     if(q.kind==='formula') ok=normalizeFormula(ui.answer.value)===normalizeFormula(q.answer);
@@ -1082,6 +1089,7 @@ function celebrate(){
   }
 
   function showHint(){
+    if(quiz)quiz.current.help=true;
     const q=state.q;
     ui.hintBox.className='hintbox show';
     ui.hintBox.innerHTML='<b>🧭 Your solving plan</b><ol><li>Identify the given quantity and the unit requested.</li><li>Follow the route: '+q.path.join(' → ')+'.</li><li>'+ (q.hints.join('</li><li>')||'Use conversion factors so unwanted units cancel.')+'</li><li>Keep extra digits during the calculation; round only the final result'+(q.topic==='Hydrate Composition'?' to the nearest whole number':q.sigFigs?' to '+q.sigFigs+' significant figures':'')+'.</li></ol><p>'+(q.kind==='formula'?'Type the simplest chemical formula, such as CH2O. Omit subscripts of 1.':q.kind==='builder'?'Place and flip factors so units cancel left to right.':'The bold unit beside the answer box is supplied—type only the number.')+'</p>';
@@ -1095,7 +1103,7 @@ function celebrate(){
   function showSolution(){
     const opening=!ui.solution.classList.contains('show');
     ui.solution.classList.toggle('show');
-    if(opening){state.q.assisted=true;ui.solution.innerHTML=state.q.solution; requestAnimationFrame(typesetMath);}
+    if(opening){if(quiz)quiz.current.revealed=true;state.q.assisted=true;ui.solution.innerHTML=state.q.solution; requestAnimationFrame(typesetMath);}
     ui.solutionBtn.textContent=ui.solution.classList.contains('show')?'Hide Solution':'🧭 Show Solution';
   }
   function updateStats(){ui.correctStat.textContent=state.correct;ui.attemptStat.textContent=state.attempted;ui.streakStat.textContent=state.streak;}
@@ -1151,6 +1159,21 @@ function celebrate(){
   function renderMoleQuest(){const p=track();document.getElementById('questHeading').textContent='CHEM '+state.course+' · Level '+(1+Math.floor(p.xp/100))+' · Mole Navigator';document.getElementById('questText').textContent=p.xp+' XP · '+(100-p.xp%100)+' XP to next level';document.getElementById('questMeter').value=p.xp%100;document.getElementById('questBadges').innerHTML=[['🌱 First conversion',p.wins>=1],['⚖️ Mole explorer',p.wins>=10],['🔥 Five in a row',p.best>=5],['🏆 Mole champion',p.wins>=25]].map(([t,yes])=>'<span class="'+(yes?'earned':'')+'">'+(yes?'✓ ':'🔒 ')+t+'</span>').join('');}
   function awardMoleXP(){const q=state.q;ui.nextBtn.classList.add('complete');ui.nextBtn.textContent='✓ Complete! Next Question →';if(q.assisted||q.xpAwarded)return;q.xpAwarded=true;const p=track(),bonus=Math.random()<.2,gain=bonus?40:20;p.xp+=gain;p.wins++;p.best=Math.max(p.best,state.streak);renderMoleQuest();try{localStorage.setItem('drdan-mole-progress-v1',JSON.stringify(moleProgress));}catch{}if(bonus){ui.modePill.textContent='🎉 Double XP! +40 · CHEM '+state.course;}}
   for(const id of ['quickGuide','moleQuest']){const el=document.getElementById(id);try{el.open=localStorage.getItem('mole-ui-'+id)!=='closed';}catch{}el.addEventListener('toggle',()=>{try{localStorage.setItem('mole-ui-'+id,el.open?'open':'closed');}catch{}});}
+  let quiz=null;
+  function skillPlan(){const common=[['molarMass','Molar mass',molarMassPractice],['mass','Grams → moles',oneStepMassMoles],['mass','Moles → grams',oneStepMassMoles],['ratio','Formula mole ratios',oneStepFormulaRatio],['ratio','Formula mole ratios',oneStepFormulaRatio],['elementMass','Element mass',constituentMassPractice],['particles','Moles and particles',oneStepParticles]];
+    return state.course==='3A'?[...common,['empirical','Empirical formula from grams',()=>empiricalForBasis(false)],['empirical','Empirical formula from percentages',()=>empiricalForBasis(true)],['two','Two-step conversion',()=>withoutParticlesTwo()]]:[common[0],common[1],common[3],common[6],['density','Density chains',()=>conversionBySteps(3)],['percent','Percent composition',percentComposition],['empirical','Empirical formula',empiricalFormula],['molecular','Molecular formula',molecularPractice],['hydrate','Hydrate composition',hydratePractice],['combustion','Combustion analysis',combustionPractice]];
+  }
+  function empiricalForBasis(percent){for(let i=0;i<100;i++){const q=simpleEmpiricalFormula();if((q.path[0]==='assume 100 g')===percent)return q;}return simpleEmpiricalFormula();}
+  function withoutParticlesTwo(){for(let i=0;i<100;i++){const q=twoStepBasic();if(!usesParticles(q))return q;}return constituentMassPractice();}
+  function startSkillCheck(){quiz=null;document.getElementById('quizResults').hidden=true;const items=skillPlan().map(([mode,label,make],i)=>{let q=make();if(state.course==='3A'&&(i===1||i===2)){for(let t=0;t<100;t++){q=oneStepMassMoles();if((q.unit==='mol')===(i===1))break;}}return {mode,label,q,done:false,missed:false,help:false,revealed:false,skipped:false};});quiz={items,position:0,current:null};renderModeButtons();updateStepVisibility();newQuestion();}
+  function checkSkillAnswer(){const item=quiz.current;if(item.done)return;const q=item.q,raw=ui.answer.value;let ok=q.kind==='formula'?normalizeFormula(raw)===normalizeFormula(q.answer):numericMatches(parseNum(raw),q)&&countSigFigsInput(raw)===q.sigFigs;
+    if(!ok){item.missed=true;ui.feedback.className='feedback bad';ui.feedback.textContent='Not quite yet. Check your setup and rounding, or use Help. This skill will appear in your review plan.';return;}
+    item.done=true;ui.feedback.className='feedback good';ui.feedback.textContent='✓ Correct! '+(item.missed||item.help||item.revealed?'This skill is marked for review.':'Solved independently on your first try.');ui.nextBtn.classList.add('complete');ui.nextBtn.textContent=quiz.position===9?'See my study plan →':'Next prep question →';
+  }
+  function showSkillReport(){const finished=quiz,independent=finished.items.filter(x=>!x.skipped&&!x.missed&&!x.help&&!x.revealed).length;quiz=null;const root=document.getElementById('quizResults');root.hidden=false;root.replaceChildren();const heading=document.createElement('h2');heading.textContent='Your CHEM '+state.course+' study plan';const score=document.createElement('p');score.textContent=independent+'/10 solved independently on the first try. Help, retries, revealed solutions, and skipped questions guide your review. Quiz results do not change practice XP or scores.';root.append(heading,score);
+    for(const item of finished.items){const row=document.createElement('div');row.className='study-result';const title=document.createElement('strong');title.textContent=item.label;const status=document.createElement('span');status.textContent=item.skipped?'Skipped · review':item.revealed?'Solution viewed · review':item.help?'Help used · review':item.missed?'Retried · review':'✓ Independent';const advice=document.createElement('p');advice.textContent=item.q.path.join(' → ');const btn=document.createElement('button');btn.className='ghost';btn.textContent='Practice this skill';btn.onclick=()=>{root.hidden=true;ui.practiceType.value=item.mode;renderModeButtons();updateStepVisibility();newQuestion();};row.append(title,status,advice,btn);root.append(row);}
+    const again=document.createElement('button');again.className='primary';again.textContent='Try another Skill Check';again.onclick=startSkillCheck;root.append(again);ui.feedback.className='feedback';ui.answerZone.hidden=true;ui.builderZone.classList.remove('show');ui.hintBox.className='hintbox';ui.solution.className='solution';ui.nextBtn.hidden=true;document.querySelector('.actions').hidden=true;renderModeButtons();root.scrollIntoView({block:'start',behavior:'auto'});
+  }
   setCourse('3A');
 })();
 </script>
