@@ -249,7 +249,8 @@ dialog{border:0;border-radius:18px;box-shadow:0 24px 80px #14173855;padding:0;wi
 .road-ref{background:#f7f8fc;border:1px solid var(--line);border-radius:14px;padding:14px 18px}.road-ref ul{margin:6px 0 0;padding-left:20px;display:grid;gap:6px}
 .answer input{min-width:0}
 @media(max-width:680px){.chapter-chip a{margin-left:0}.feature-card{padding:12px}.fc-go{display:none}}
-</style></head>
+</style><script src="https://itsdrdan.github.io/games/track.js" defer></script>
+</head>
 <body><canvas id="celebrationCanvas" aria-hidden="true" hidden></canvas><div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="app">
 <header class="topbar"><div class="tb">
@@ -903,8 +904,9 @@ function guideChoice(key){const q=state.q,s=q.guide[state.guideIdx];if(key===s.a
 /* ===================== Answer checking ===================== */
 function setFeedback(type,html){const el=byId('feedback');el.className='feedback '+type;el.setAttribute('role',type==='bad'?'alert':'status');el.innerHTML=(type==='good'||type==='bad'?'<div class="result-title"><span aria-hidden="true">'+(type==='good'?'✓':'✕')+'</span><strong>'+(type==='good'?pick(['Nice work!','You got it!','Holy moley, nice!','Nailed it!']):'Not correct yet, try again')+'</strong></div>':'')+'<div>'+html+'</div>';byId('bottomNext').hidden=!(type==='good'&&state.q?.scored);byId('skipQ').hidden=(state.view!=='learn'&&!state.quiz)||!!state.q?.scored;if(state.q)updateCoach();if(type==='bad'){el.focus({preventScroll:true});el.scrollIntoView({block:'nearest',behavior:reduceMotion()?'auto':'smooth'});}}
 function countAttempt(q){if(!q.attempted){q.attempted=true;P.attempts++;save();renderStatus();}}
-function markWrong(q){if(!q.failed){q.failed=true;P.streak=0;P.miss=P.miss||{};if(q.modeKey)P.miss[q.modeKey]=(P.miss[q.modeKey]||0)+1;save();renderStatus();}if(state.quiz)state.quiz.items[state.quiz.i].missed=true;}
-function scoreCorrect(q,extra=''){if(q.scored)return '';q.scored=true;P.correct++;const solo=!q.usedHelp&&!q.guideUsed;let xp;
+function ddLog(q,ok){try{if(!q||q.ddLogged||!window.ddTrack)return;q.ddLogged=1;const L=q.level&&levelById(q.level);ddTrack({game:'moles',course:state.course,mode:state.quiz?'Skill Check Prep':L?'Learn Trail':'Practice',topic:L?L.title:({road:'Mole Road Map',molar:'Molar Mass',percent:'Percent Composition',formula:'Empirical & Molecular Formulas',sense:'Mole Sense',health:'Health-science mole problems',solution:'Solution moles'}[q.modeKey||state.mode]||q.modeKey||state.mode||''),correct:!!ok});}catch(e){}}
+function markWrong(q){ddLog(q,false);if(!q.failed){q.failed=true;P.streak=0;P.miss=P.miss||{};if(q.modeKey)P.miss[q.modeKey]=(P.miss[q.modeKey]||0)+1;save();renderStatus();}if(state.quiz)state.quiz.items[state.quiz.i].missed=true;}
+function scoreCorrect(q,extra=''){if(q.scored)return '';ddLog(q,!q.solutionShown);q.scored=true;P.correct++;const solo=!q.usedHelp&&!q.guideUsed;let xp;
  if(q.solutionShown){xp=3;}else{P.streak++;P.best=Math.max(P.best,P.streak);xp=10+(q.failed?0:5)+(solo?5:0)+Math.min(2*(P.streak-1),10);if(solo)P.solo++;if(!q.failed&&q.sf)P.sigFirst++;}
  if(q.kind==='formula')P.formulas++;
  if(q.level&&!q.solutionShown){const before=P.levels[q.level]||0;P.levels[q.level]=Math.min(6,before+(solo?2:1));if(before<6&&P.levels[q.level]>=6){xp+=50;toast(levelById(q.level).icon,'Stop mastered!',levelById(q.level).title+' complete (+50 XP).');}renderTrail();}
