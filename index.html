@@ -365,10 +365,10 @@ const ELEMENTS=[['Fe','iron'],['Cu','copper'],['Al','aluminum'],['Au','gold'],['
 const byId=id=>document.getElementById(id),pick=a=>a[Math.floor(Math.random()*a.length)],roll=(a,b)=>a+Math.random()*(b-a);
 const cmp=f=>COMPOUNDS.find(x=>x.f===f)||ELEMENTS.find(x=>x.f===f);
 const dpOf=t=>(String(t).split('.')[1]||'').length;
-function sfCount(s){let t=normalizeScientific(s).trim().replace(/,/g,'').replace(/\s/g,'').replace(/(?:[×x*]10\^?|[eE])[+-]?\d+$/,'').replace(/^[+-]/,'');if(!/^\d*\.?\d+$/.test(t))return 0;t=t.replace(/^0+(?=\d)/,'');if(t.includes('.'))return t.replace('.','').replace(/^0+/,'').length;return t.replace(/0+$/,'').length;}
+function sfCount(s){let t=normalizeScientific(s).trim().replace(/,/g,'').replace(/\s/g,'').replace(/(?:[×xX*]10\^?|[eE])[+-]?\d+$/,'').replace(/^[+-]/,'');if(!/^(?:\d+\.?\d*|\.\d+)$/.test(t))return 0;t=t.replace(/^0+(?=\d)/,'');if(t.includes('.'))return t.replace('.','').replace(/^0+/,'').length;return t.replace(/0+$/,'').length;}
 /* Molar mass follows the addition rule: round to the fewest decimal places among the atomic masses used. */
 function molar(comp){const els=Object.keys(comp),dp=Math.min(...els.map(e=>dpOf(masses[e]))),raw=els.reduce((s,e)=>s+Number(masses[e])*comp[e],0),value=Number(raw.toFixed(dp)),text=value.toFixed(dp);return {value,text,dp,sf:sfCount(text),raw};}
-function normalizeScientific(raw){return String(raw).replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]/g,c=>({'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁻':'-','⁺':'+'})[c]);}
+function normalizeScientific(raw){return String(raw).replace(/[−–]/g,'-').replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]/g,c=>({'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁻':'-','⁺':'+'})[c]);}
 const SUP=s=>String(s).replace(/[0-9-]/g,c=>({'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'})[c]);
 function fmt(x,s=3){if(!Number.isFinite(x))return String(x);if(x===0)return '0';const rounded=Number(x.toPrecision(s)),exp=Math.floor(Math.log10(Math.abs(rounded)));const fixed=rounded.toFixed(Math.max(0,s-1-exp));if(exp>=5||exp<=-4||exp>=s||(!fixed.includes('.')&&fixed.endsWith('0')&&sfCount(fixed)!==s)){const [m,p]=rounded.toExponential(s-1).split('e');return m+' × 10'+SUP(Number(p));}return fixed;}
 function parseValue(raw){let t=normalizeScientific(raw).trim().replace(/,/g,'').replace(/\s+/g,'').replace(/[×x*]10\^?([+-]?\d+)$/i,'e$1');if(!/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(t))return NaN;return Number(t);}
@@ -927,6 +927,7 @@ function checkAnswer(){const q=state.q;if(q.scored){setFeedback('good','Already 
  const target=Number(q.answer.toPrecision(q.sf)),tol=Math.max(Math.abs(target)*.006,Math.abs(q.answer)*1e-9);
  if(Math.abs(n-target)>tol){markWrong(q);const alt=(q.alts||[]).find(a=>Math.abs(n-a.v)<=Math.abs(a.v)*.012);setFeedback('bad',(alt?alt.msg:sanityMsg(q,n)||'Check your setup: does every unit cancel? Then check the arithmetic.')+helpTip(q));return}
  if(sfCount(raw)!==q.sf){setFeedback('info','<b>Your math is right!</b> Now round to '+q.sf+' significant figures: '+escape(fmt(q.answer,q.sf))+'. Enter it that way to score.'+(q.sfWhy?' '+q.sfWhy:''));return}
+ {const step=Math.pow(10,Math.floor(Math.log10(Math.abs(target)))-q.sf+1);if(Math.abs(n-target)>step*1.001){markWrong(q);setFeedback('bad','Very close, but your last digits don’t match. Recheck your arithmetic and rounding, using the Yellow Sheet molar masses without rounding them early.'+helpTip(q));return}}
  setFeedback('good','Correct! '+escape(fmt(q.answer,q.sf))+' '+unitHTML(q.unit)+'.'+scoreCorrect(q));}
 function sanityMsg(q,n){const isCount=/^(molecules|atoms|formula units) /.test(q.unit),r=n/q.answer,k=Math.round(Math.log10(Math.abs(r)));
  if(n>0&&k!==0&&Math.abs(Math.log10(Math.abs(r))-k)<.004)return '<b>Your digits are right, but the power of 10 is off by '+Math.abs(k)+'.</b> '+((q.steps||[]).some(f=>f.name==='Avogadro’s number')?'Calculator tip: type 6.0221 <b>EE</b> 23 (or 6.0221 <b>×10ˣ</b> 23). Typing “× 10 EE 23” adds an extra factor of 10.':'Check the decimal point and any mg ↔ g (1000) steps.');
