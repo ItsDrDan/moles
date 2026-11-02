@@ -448,7 +448,7 @@ function topicFor(steps){const n=steps.map(s=>s.name);if(n.includes('Density'))r
 function stepTip(f){const into=f.outU.startsWith('mol ');switch(f.name){
  case 'Molar mass':return f.inU.startsWith('g ')?'Grams → moles: divide by the molar mass ('+f.bot.text+' g/mol).':'Moles → grams: multiply by the molar mass ('+f.top.text+' g/mol).';
  case 'Avogadro’s number':return into?'Particles → moles: divide by '+NA_TEXT+'.':'Moles → particles: multiply by '+NA_TEXT+'.';
- case 'Formula subscript':{const els=f.inU.startsWith('mol ')&&f.top.v!==1?f.top:f.bot;return 'Read the subscript: 1 mol of the compound holds '+(f.top.v===1?f.bot.v:f.top.v)+' mol of '+plainF((f.top.v===1?f.bot.u:f.top.u).replace('mol ',''))+' atoms.';}
+ case 'Formula subscript':{const isEl=x=>/^[A-Z][a-z]?$/.test(String(x.u).replace('mol ','')),el=isEl(f.top)?f.top:isEl(f.bot)?f.bot:(f.top.v===1?f.bot:f.top);return 'Read the subscript: 1 mol of the compound holds '+el.v+' mol of '+plainF(String(el.u).replace('mol ',''))+' atoms.';}
  case 'Density':return f.inU.startsWith('mL')?'mL → g: multiply by the density (g/mL).':'g → mL: divide by the density.';
  case 'Metric (exact)':return f.inU.startsWith('mg')?'mg → g: divide by 1000.':f.inU.startsWith('kg')?'kg → g: multiply by 1000.':'L → mL: multiply by 1000.';
  default:return 'Use the '+f.name.toLowerCase()+'.';}}
